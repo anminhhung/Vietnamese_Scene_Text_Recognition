@@ -20,7 +20,7 @@ from torchvision.ops import misc as misc_nn_ops
 
 # model = MaskRCNN(backbone, num_classes).to(device)
 
-def detect_text_area(model, image_path):
+def detect_text_area(model, image_path, device):
     model.eval()
 
     img = Image.open(image_path).convert("RGB")
