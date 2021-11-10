@@ -38,7 +38,7 @@ backbone = BackboneWithFPN(backbone = backbone, return_layers = {'layer1': '0', 
 detect_model = MaskRCNN(backbone, num_classes).to(device)
 detect_model.load_state_dict(torch.load("models/mask_rcnn/resnext50.pth")) 
 
-def predict_image(image_path)
+def predict_image(image_path):
     image = cv2.imread(image_path)
     list_boxes, list_scores = detect_text_area(detect_model, image_path, device)
     for bbox in list_boxes:
@@ -51,4 +51,4 @@ def predict_image(image_path)
     # image = draw_text_bbox(image, list_boxes)
 
 if __name__ == "__main__":
-    
+    predict_image("data/demo_images/im1518.jpg")
