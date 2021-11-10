@@ -25,13 +25,13 @@ CFG = init_config()
 config = Cfg.load_config_from_name('vgg_transformer')
 config['weights'] = CFG['vietocr']['weights']
 config['cnn']['pretrained'] = False
-config['device'] = CFG['system']['device']
+config['device'] = CFG['service']['device']
 config['predictor']['beamsearch'] = False
 recognition_model = Predictor(config)
 
 # our dataset has two classes only - background and text
 num_classes=2
-device = torch.device(CFG['system']['device'])
+device = torch.device(CFG['service']['device'])
 
 backbone = resnext50_32x4d(pretrained=True, progress=True, norm_layer=misc_nn_ops.FrozenBatchNorm2d)
 backbone = BackboneWithFPN(backbone = backbone, return_layers = {'layer1': '0', 'layer2': '1', 'layer3': '2', 'layer4': '3'}, 
