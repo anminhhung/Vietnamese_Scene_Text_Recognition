@@ -24,11 +24,11 @@ def detect_text_area(model, image_path, device):
     model.eval()
 
     img = Image.open(image_path).convert("RGB")
-    img = F.to_tensor(img)
+    img_tensor = F.to_tensor(img)
 
     # put the model in evaluation mode
     with torch.no_grad():
-        prediction = model([img.to(device)])
+        prediction = model([img_tensor.to(device)])
 
     masks = torch.round(prediction[0]["masks"].squeeze(1)).cpu().numpy()
     boxes = []
@@ -42,5 +42,6 @@ def detect_text_area(model, image_path, device):
 
     boxes = np.array(boxes)
     scores = prediction[0]["scores"].cpu().numpy()
+
 
     return boxes, scores 

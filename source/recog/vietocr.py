@@ -6,7 +6,6 @@ from vietocr.tool.config import Cfg
 from shapely.geometry import Polygon
 
 from libs import CRAFT_DETECTOR
-from utils.create_output_file import create_output
 from configs.config import init_config
 
 # config
