@@ -41,27 +41,44 @@ backbone = BackboneWithFPN(backbone = backbone, return_layers = {'layer1': '0', 
 detect_model = MaskRCNN(backbone, num_classes).to(device)
 detect_model.load_state_dict(torch.load(CFG['mask_rcnn']['model_path'])) 
 
-def predict_image(image_name, data_dir="data/TestA", result_dir="predicted"):
+def predict_image(image_name, data_dir="data/TestA", result_dir="predicted", visual_dir="data/visual"):
     image_path = os.path.join(data_dir, image_name)
     image = cv2.imread(image_path)
-    list_boxes, list_scores = detect_text_area(detect_model, image_path, device)
+    try:
+        list_boxes, list_scores = detect_text_area(detect_model, image_path, device)
+        list_result_text = []
+        list_use_boxes = []
+        for bbox in list_boxes:
+            try:
+                text_image = crop_text_area(image, bbox)
+                text_image_pil = Image.fromarray(text_image)
+                result_text = recognition_model.predict(text_image_pil)
+                # write output file
+                create_output_file(os.path.join(result_dir, "{}.txt".format(image_name)), bbox, result_text)
+                list_use_boxes.append(bbox)
+                list_result_text.append(result_text)
+            except Exception as e:
+                with open("error_maybe_in_bbox.txt", "a+") as f:
+                    f.write("{}\t{}\n".format(e, image_name))
+                continue
+    except Exception as e:
+        with open("error_in_detect_module.txt", "a+") as f:
+            f.write("{}\t{}\n".format(e, image_name))
+        pass
 
-    for bbox in list_boxes:
-        text_image = crop_text_area(image, bbox)
-        text_image_pil = Image.fromarray(text_image)
-        result_text = recognition_model.predict(text_image_pil)
-        # write output file
-        create_output_file(os.path.join(result_dir, "{}.txt".format(image_name)), bbox, result_text)
-
-    print("[INFO] Done")
-    # image = draw_text_bbox(image, list_boxes)
+    image = draw_text_bbox(image, list_use_boxes, list_result_text)
+    image_des_path = os.path.join(visual_dir, image_name)
+    cv2.imwrite(image_des_path, image)
 
 def create_submit(image_dir="data/TestA", result_dir="predicted"):
     if not os.path.exists(result_dir):
-        os.mkdir(result_dir="predicted")
+        os.mkdir(result_dir)
+    
+    if not os.path.exists("data/visual"):
+        os.mkdir("data/visual")
 
-    print("[INFO] Predicting........")
     for image_name in os.listdir(image_dir):
+        print("[INFO] Predicting {}........".format(image_name))
         predict_image(image_name)
 
     print("[INFO] Done")
