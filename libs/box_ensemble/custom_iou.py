@@ -1,4 +1,5 @@
 from numba import jit
+import numpy as np
 from shapely.geometry import Polygon,MultiPoint
 
 class IOU():
@@ -21,6 +22,6 @@ class IOU():
             except Exception as e:
                 print(e)
 
-@jit(nopython=True)
+# @jit(nopython=True)
 def quadrangle_intersection_over_union(A, B):
     return IOU(A, B)()

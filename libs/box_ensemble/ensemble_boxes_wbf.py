@@ -116,7 +116,7 @@ def get_weighted_box(boxes, conf_type='avg'):
     :return: weighted box (label, score, weight, x1, y1, x2, y2)
     """
 
-    box = np.zeros(11, dtype=np.float32)
+    box = np.zeros(12, dtype=np.float32)
     conf = 0
     conf_list = []
     w = 0

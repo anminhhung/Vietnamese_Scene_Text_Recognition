@@ -32,9 +32,6 @@ def bb_intersection_over_union(A, B):
     iou = interArea / float(boxAArea + boxBArea - interArea)
     return iou
 
-@jit(nopython=True)
-def quadrangle_intersection_over_union(A, B):
-    return IOU(A, B)()
 
 def prefilter_boxes(boxes, scores, labels, weights, thr):
     # Create dict with boxes stored by its label
