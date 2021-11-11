@@ -1,5 +1,5 @@
 # Example
-```{python}
+```python
 from ensemble_boxes import *
 
 boxes_list = [
