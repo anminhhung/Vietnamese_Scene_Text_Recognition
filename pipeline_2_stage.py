@@ -4,6 +4,7 @@ import os
 
 from PIL import Image
 from shapely.geometry import Polygon
+from tqdm import tqdm
 
 import torch 
 import torchvision.transforms.functional as F
@@ -78,7 +79,7 @@ def create_submit(image_dir="data/TestA", result_dir="predicted"):
         os.mkdir("data/visual")
 
     for image_name in os.listdir(image_dir):
-        print("[INFO] Predicting {}........".format(image_name))
+        print("predict ", image_name)
         predict_image(image_name)
 
     print("[INFO] Done")
