@@ -1,5 +1,10 @@
 # Vietnamese Scene Text Recognition
 
+# Public test
+```
+    gdown --id 1sUqBG2mTNIovZ_zBUj37A1TtCTzSUEzs
+```
+
 # Models
 ## 1. Mask-RCNN resnet
 ```

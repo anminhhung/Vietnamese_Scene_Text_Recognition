@@ -1,5 +1,6 @@
 import numpy as np 
 import cv2
+import os 
 
 from PIL import Image
 from shapely.geometry import Polygon
@@ -40,17 +41,30 @@ backbone = BackboneWithFPN(backbone = backbone, return_layers = {'layer1': '0', 
 detect_model = MaskRCNN(backbone, num_classes).to(device)
 detect_model.load_state_dict(torch.load(CFG['mask_rcnn']['model_path'])) 
 
-def predict_image(image_path):
+def predict_image(image_name, data_dir="data/TestA", result_dir="predicted"):
+    image_path = os.path.join(data_dir, image_name)
     image = cv2.imread(image_path)
     list_boxes, list_scores = detect_text_area(detect_model, image_path, device)
+
     for bbox in list_boxes:
         text_image = crop_text_area(image, bbox)
         text_image_pil = Image.fromarray(text_image)
         result_text = recognition_model.predict(text_image_pil)
         # write output file
-        create_output_file("submit.txt", bbox, result_text)
+        create_output_file(os.path.join(result_dir, "{}.txt".format(image_name)), bbox, result_text)
 
+    print("[INFO] Done")
     # image = draw_text_bbox(image, list_boxes)
 
+def create_submit(image_dir="data/TestA", result_dir="predicted"):
+    if not os.path.exists(result_dir):
+        os.mkdir(result_dir="predicted")
+
+    print("[INFO] Predicting........")
+    for image_name in os.listdir(image_dir):
+        predict_image(image_name)
+
+    print("[INFO] Done")
+
 if __name__ == "__main__":
-    predict_image("data/demo_images/im1518.jpg")
+    create_submit()
