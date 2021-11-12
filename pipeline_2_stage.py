@@ -55,11 +55,12 @@ def predict_image(image_name, data_dir="data/TestA", result_dir="predicted", vis
                 text_image_pil = Image.fromarray(text_image)
                 result_text, prob = recognition_model.predict(text_image_pil, True)
                 # write output file
-                create_output_file(os.path.join(result_dir, "{}.txt".format(image_name)), bbox, result_text)
-                list_use_boxes.append(bbox)
-                list_result_text.append(result_text)
-                with open("prob_text.txt", "a+") as f:
-                    f.write("{}\t{}\n".format(result_text, prob))
+                if prob > 0.6: # best 0.5
+                    create_output_file(os.path.join(result_dir, "{}.txt".format(image_name)), bbox, result_text)
+                    list_use_boxes.append(bbox)
+                    list_result_text.append(result_text)
+                    with open("prob_text.txt", "a+") as f:
+                        f.write("{}\t{}\n".format(result_text, prob))
 
             except Exception as e:
                 with open("error_maybe_in_bbox.txt", "a+") as f:
