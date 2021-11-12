@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import os 
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from shapely.geometry import Polygon
 from tqdm import tqdm
 
@@ -45,19 +45,22 @@ detect_model.load_state_dict(torch.load(CFG['mask_rcnn']['model_path']))
 def predict_image(image_name, data_dir="data/TestA", result_dir="predicted", visual_dir="data/visual"):
     image_path = os.path.join(data_dir, image_name)
     image = cv2.imread(image_path)
+    list_result_text = []
+    list_use_boxes = []
     try:
         list_boxes, list_scores = detect_text_area(detect_model, image_path, device)
-        list_result_text = []
-        list_use_boxes = []
         for bbox in list_boxes:
             try:
                 text_image = crop_text_area(image, bbox)
                 text_image_pil = Image.fromarray(text_image)
-                result_text = recognition_model.predict(text_image_pil)
+                result_text, prob = recognition_model.predict(text_image_pil, True)
                 # write output file
                 create_output_file(os.path.join(result_dir, "{}.txt".format(image_name)), bbox, result_text)
                 list_use_boxes.append(bbox)
                 list_result_text.append(result_text)
+                with open("prob_text.txt", "a+") as f:
+                    f.write("{}\t{}\n".format(result_text, prob))
+
             except Exception as e:
                 with open("error_maybe_in_bbox.txt", "a+") as f:
                     f.write("{}\t{}\n".format(e, image_name))
