@@ -10,6 +10,7 @@ import torch
 import torchvision.transforms.functional as F
 from torchvision.models.detection.backbone_utils import BackboneWithFPN
 from torchvision.models.resnet import resnext50_32x4d
+from torchvision.models.vgg import vgg19_bn
 from torchvision.models.detection.mask_rcnn import MaskRCNN
 from torchvision.ops.feature_pyramid_network import LastLevelMaxPool
 from torchvision.ops import misc as misc_nn_ops
@@ -32,15 +33,24 @@ config['predictor']['beamsearch'] = False
 recognition_model = Predictor(config)
 
 # our dataset has two classes only - background and text
-num_classes=2
+num_classes = 2 + 80
+
 device = torch.device(CFG['service']['device'])
 
-backbone = resnext50_32x4d(pretrained=True, progress=True, norm_layer=misc_nn_ops.FrozenBatchNorm2d)
-backbone = BackboneWithFPN(backbone = backbone, return_layers = {'layer1': '0', 'layer2': '1', 'layer3': '2', 'layer4': '3'}, 
-                             in_channels_list=[256, 512, 1024, 2048], out_channels=256, extra_blocks=LastLevelMaxPool())
+# mask-rcnn
+# backbone = resnext50_32x4d(pretrained=True, progress=True, norm_layer=misc_nn_ops.FrozenBatchNorm2d)
+# backbone = BackboneWithFPN(backbone = backbone, return_layers = {'layer1': '0', 'layer2': '1', 'layer3': '2', 'layer4': '3'}, 
+                            #  in_channels_list=[256, 512, 1024, 2048], out_channels=256, extra_blocks=LastLevelMaxPool())
 
-detect_model = MaskRCNN(backbone, num_classes).to(device)
-detect_model.load_state_dict(torch.load(CFG['mask_rcnn']['model_path'])) 
+# VGG
+backbone = vgg19_bn(pretrained=False, progress=True)
+backbone_fpn = BackboneWithFPN(backbone = backbone.features, return_layers = {"7":'0', "14":'1', "27":'2', "40":'3'}, 
+                             in_channels_list=[128, 256, 512, 512], out_channels=256, extra_blocks=LastLevelMaxPool())
+model = MaskRCNN(backbone_fpn, num_classes)
+
+detect_model = MaskRCNN(backbone_fpn, num_classes).to(device)
+detect_model.load_state_dict(torch.load("models/vgg19_fail.pth")) 
+# detect_model.load_state_dict(torch.load(CFG['mask_rcnn']['model_path'])) 
 
 def predict_image(image_name, data_dir="data/TestA", result_dir="predicted", visual_dir="data/visual"):
     image_path = os.path.join(data_dir, image_name)
@@ -55,7 +65,7 @@ def predict_image(image_name, data_dir="data/TestA", result_dir="predicted", vis
                 text_image_pil = Image.fromarray(text_image)
                 result_text, prob = recognition_model.predict(text_image_pil, True)
                 # write output file
-                if prob > 0.6: # best 0.5
+                if prob > 0.8: # best 0.6
                     create_output_file(os.path.join(result_dir, "{}.txt".format(image_name)), bbox, result_text)
                     list_use_boxes.append(bbox)
                     list_result_text.append(result_text)
