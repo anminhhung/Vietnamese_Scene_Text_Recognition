@@ -6,9 +6,9 @@
 ```
 
 # Models
-## 1. Mask-RCNN resnet
+## 1. Mask-RCNN efficientNet
 ```
-    gdown --id 1-1YaQktobQPTauj74CZLRMTKmOnT2jqa
+    gdown --id 1FQz_CHOmv5WOTJpH8TIZEV-MKy38qH2p
 ```
 ## 2. VietOCR 
 ```
