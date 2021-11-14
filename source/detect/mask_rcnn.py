@@ -44,7 +44,7 @@ def detect_text_area(model, image_path, device):
         boxes.append(box)
 
     boxes = np.array(boxes)
-    scores = prediction[0]["scores"].cpu().numpy()
+    # scores = prediction[0]["scores"].cpu().numpy()
 
 
     return boxes, scores 
