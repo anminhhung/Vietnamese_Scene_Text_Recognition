@@ -44,7 +44,7 @@ backbone_b7 = EfficientNet.from_name('efficientnet-b7', include_top=False)
 backbone__b7_fpn = BackboneWithFPN_B7(backbone = backbone_b7, return_layers = {"27":'0', "37":'1', "50":'2', "54":'3'}, 
                              in_channels_list=[160, 224, 384, 640], out_channels=256, extra_blocks=LastLevelMaxPool())
 
-detect_model_b7 = MaskRCNN(backbone_fpn, num_classes).to(device)
+detect_model_b7 = MaskRCNN(backbone__b7_fpn, num_classes).to(device)
 detect_model_b7.load_state_dict(torch.load("models/efficientb7_fail.pth")) 
 
 # resnext50 

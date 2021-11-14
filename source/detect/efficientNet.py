@@ -51,7 +51,7 @@ class BackboneWithFPN_B7(nn.Module):
         extra_blocks,
     ):
         
-        super(BackboneWithFPN, self).__init__()
+        super(BackboneWithFPN_B7, self).__init__()
 
         if extra_blocks is None:
             extra_blocks = LastLevelMaxPool()
