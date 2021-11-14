@@ -30,7 +30,10 @@ def detect_text_area(model, image_path, device):
     with torch.no_grad():
         prediction = model([img_tensor.to(device)])
 
-    masks = torch.round(prediction[0]["masks"].squeeze(1)).cpu().numpy()
+    idx_text = torch.logical_and(prediction[0]['labels'] == 1, prediction[0]["scores"] >= 0.5)
+    scores = prediction[0]["scores"][idx_text].cpu().numpy()
+    masks = torch.round(prediction[0]["masks"].squeeze(1))[idx_text].cpu().numpy()
+    # masks = torch.round(prediction[0]["masks"].squeeze(1)).cpu().numpy()
     boxes = []
     for i in range(masks.shape[0]):
         mask = np.uint8(masks[i])
