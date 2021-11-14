@@ -8,7 +8,7 @@
 # Models
 ## 1. Mask-RCNN efficientNet
 ```
-    gdown --id 1FQz_CHOmv5WOTJpH8TIZEV-MKy38qH2p
+    gdown --id 1S5SCobkYG5geuJZ7H_SzpaZ6FY8ZgRpY
 ```
 ## 2. VietOCR 
 ```

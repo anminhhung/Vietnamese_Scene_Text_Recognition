@@ -43,10 +43,7 @@ backbone = EfficientNet.from_name('efficientnet-b7', include_top=False)
 backbone_fpn = BackboneWithFPN(backbone = backbone, return_layers = {"27":'0', "37":'1', "50":'2', "54":'3'}, 
                              in_channels_list=[160, 224, 384, 640], out_channels=256, extra_blocks=LastLevelMaxPool())
 
-model = MaskRCNN(backbone_fpn, num_classes)
-
-
-detect_model = MaskRCNN(backbone, num_classes).to(device)
+detect_model = MaskRCNN(backbone_fpn, num_classes).to(device)
 detect_model.load_state_dict(torch.load("models/efficientb7_fail.pth")) 
 
 # detect_model.load_state_dict(torch.load(CFG['mask_rcnn']['model_path'])) 
@@ -64,7 +61,7 @@ def predict_image(image_name, data_dir="data/TestA", result_dir="predicted", vis
                 text_image_pil = Image.fromarray(text_image)
                 result_text, prob = recognition_model.predict(text_image_pil, True)
                 # write output file
-                if prob > 0.0: # best 0.6
+                if prob > 0.8: # best 0.6
                     create_output_file(os.path.join(result_dir, "{}.txt".format(image_name)), bbox, result_text)
                     list_use_boxes.append(bbox)
                     list_result_text.append(result_text)
