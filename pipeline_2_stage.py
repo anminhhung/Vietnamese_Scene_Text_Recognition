@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 import torch 
 import torchvision.transforms.functional as F
-# from torchvision.models.detection.backbone_utils import BackboneWithFPN
+from torchvision.models.detection.backbone_utils import BackboneWithFPN
 from torchvision.models.resnet import resnext50_32x4d
 from torchvision.models.vgg import vgg19_bn
 from efficientnet_pytorch import EfficientNet
@@ -19,7 +19,7 @@ from torchvision.ops import misc as misc_nn_ops
 from vietocr.tool.predictor import Predictor
 from vietocr.tool.config import Cfg
 
-from source.detect.efficientNet import IntermediateLayerGetter, BackboneWithFPN
+from source.detect.efficientNet import IntermediateLayerGetter, BackboneWithFPN_B7
 from source.detect.mask_rcnn import detect_text_area
 from utils.visualize import draw_text_bbox
 from utils.helper import crop_text_area, create_output_file
@@ -37,24 +37,34 @@ recognition_model = Predictor(config)
 # our dataset has two classes only - background and text
 num_classes = 2 + 80
 
+# efficientNet b7
 device = torch.device(CFG['service']['device'])
 
-backbone = EfficientNet.from_name('efficientnet-b7', include_top=False) 
-backbone_fpn = BackboneWithFPN(backbone = backbone, return_layers = {"27":'0', "37":'1', "50":'2', "54":'3'}, 
+backbone_b7 = EfficientNet.from_name('efficientnet-b7', include_top=False) 
+backbone__b7_fpn = BackboneWithFPN_B7(backbone = backbone_b7, return_layers = {"27":'0', "37":'1', "50":'2', "54":'3'}, 
                              in_channels_list=[160, 224, 384, 640], out_channels=256, extra_blocks=LastLevelMaxPool())
 
-detect_model = MaskRCNN(backbone_fpn, num_classes).to(device)
-detect_model.load_state_dict(torch.load("models/efficientb7_fail.pth")) 
+detect_model_b7 = MaskRCNN(backbone_fpn, num_classes).to(device)
+detect_model_b7.load_state_dict(torch.load("models/efficientb7_fail.pth")) 
+
+# resnext50 
+backbone_resnext50 = resnext50_32x4d(pretrained=True, progress=True, norm_layer=misc_nn_ops.FrozenBatchNorm2d)
+backbone_resnext50_fpn = BackboneWithFPN(backbone = backbone_resnext50, return_layers = {'layer1': '0', 'layer2': '1', 'layer3': '2', 'layer4': '3'}, 
+                             in_channels_list=[256, 512, 1024, 2048], out_channels=256, extra_blocks=LastLevelMaxPool())
+
+detect_model_resnext50 = MaskRCNN(backbone_resnext50_fpn, num_classes).to(device)
+detect_model_resnext50.load_state_dict(torch.load("models/resnext50_fail.pth")) 
+
 
 # detect_model.load_state_dict(torch.load(CFG['mask_rcnn']['model_path'])) 
 
-def predict_image(image_name, data_dir="data/TestA", result_dir="predicted", visual_dir="data/visual"):
+def predict_image(detected_model, image_name, data_dir="data/TestA", result_dir="predicted", visual_dir="data/visual"):
     image_path = os.path.join(data_dir, image_name)
     image = cv2.imread(image_path)
     list_result_text = []
     list_use_boxes = []
     try:
-        list_boxes, list_scores = detect_text_area(detect_model, image_path, device)
+        list_boxes, list_scores = detect_text_area(detected_model, image_path, device)
         for bbox in list_boxes:
             try:
                 text_image = crop_text_area(image, bbox)
@@ -81,7 +91,7 @@ def predict_image(image_name, data_dir="data/TestA", result_dir="predicted", vis
     image_des_path = os.path.join(visual_dir, image_name)
     cv2.imwrite(image_des_path, image)
 
-def create_submit(image_dir="data/TestA", result_dir="predicted"):
+def create_submit(detected_model, image_dir="data/TestA", result_dir="predicted"):
     if not os.path.exists(result_dir):
         os.mkdir(result_dir)
     
@@ -90,9 +100,9 @@ def create_submit(image_dir="data/TestA", result_dir="predicted"):
 
     for image_name in os.listdir(image_dir):
         print("predict ", image_name)
-        predict_image(image_name)
+        predict_image(detected_model, image_name)
 
     print("[INFO] Done")
 
 if __name__ == "__main__":
-    create_submit()
+    create_submit(detect_model_resnext50)

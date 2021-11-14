@@ -41,7 +41,7 @@ class IntermediateLayerGetter(nn.ModuleDict):
                 out[self.return_layers[name]] = x
         return out
 
-class BackboneWithFPN(nn.Module):
+class BackboneWithFPN_B7(nn.Module):
     def __init__(
         self,
         backbone,
