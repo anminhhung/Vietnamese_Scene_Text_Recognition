@@ -24,6 +24,7 @@ from source.detect.mask_rcnn import detect_text_area
 from utils.visualize import draw_text_bbox
 from utils.helper import crop_text_area, create_output_file
 from configs.config import init_config
+from libs.box_ensemble import *
 
 # Vietocr
 CFG = init_config()
@@ -58,15 +59,38 @@ detect_model_resnext50.load_state_dict(torch.load("models/resnext50_fail.pth"))
 
 # detect_model.load_state_dict(torch.load(CFG['mask_rcnn']['model_path'])) 
 
+iou_thr = 0.5
+skip_box_thr = 0.0001
+sigma = 0.1
+weights = [2, 1]
+
 def predict_image(detected_model, image_name, data_dir="data/TestA", result_dir="predicted", visual_dir="data/visual"):
     image_path = os.path.join(data_dir, image_name)
     image = cv2.imread(image_path)
     list_result_text = []
     list_use_boxes = []
     try:
-        list_boxes, list_scores = detect_text_area(detected_model, image_path, device)
+        list_boxes_resnet, list_scores_resnet = detect_text_area(detect_model_resnext50, image_path, 'cuda')
+        list_boxes_resnet = list(list_boxes_resnet.reshape((-1,8)))
+        list_boxes_b7, list_scores_b7 = detect_text_area(detect_model_b7, image_path, 'cuda')
+        list_boxes_b7 = list(list_boxes_b7.reshape((-1,8)))
+        list_scores_resnet = list(list_scores_resnet)
+        list_scores_b7 = list(list_scores_b7)
+        label_list = []
+        label_list.append([0 for j in range(len(list_boxes_resnet))])
+        label_list.append([0 for j in range(len(list_boxes_b7))])
+        list_boxes, list_scores, _ = weighted_boxes_fusion([list_boxes_resnet, list_boxes_b7], \
+                                                [list_scores_resnet, list_scores_b7], \
+                                                label_list, weights=weights, iou_thr=iou_thr)
+        # print(len(list_boxes))
+        list_boxes = np.array(list_boxes)
+        list_boxes = list_boxes.astype(np.int32)
+
+        # list_boxes = list_boxes.reshape((4,2))
+        # list_boxes, list_scores = detect_text_area(detected_model, image_path, device)
         for bbox in list_boxes:
             try:
+                bbox = bbox.reshape((4,2))
                 text_image = crop_text_area(image, bbox)
                 text_image_pil = Image.fromarray(text_image)
                 result_text, prob = recognition_model.predict(text_image_pil, True)
