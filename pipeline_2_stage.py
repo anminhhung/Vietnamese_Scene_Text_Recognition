@@ -98,7 +98,7 @@ def predict_image(detected_model, image_name, data_dir="data/TestA", result_dir=
         aff_mat = pairwise_distances(list_boxes_resnet, list_boxes_b7, metric=quadrangle_intersection_over_union)
         unmatched_b7_index = np.where(aff_mat.max(axis=0) < iou_thr)
         trustful_b7_index = np.where(list_scores_b7 > conf_thr)
-        list_boxes = np.concatenate(list_boxes_resnet, list_boxes_b7[np.intersect1d(trustful_b7_index, unmatched_b7_index)], axis = 0)
+        list_boxes = np.concatenate((list_boxes_resnet, list_boxes_b7[np.intersect1d(trustful_b7_index, unmatched_b7_index)]), axis = 0)
 
         # list_boxes = np.array(list_boxes)
         # list_boxes = list_boxes.astype(np.int32)
