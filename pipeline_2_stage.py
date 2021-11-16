@@ -19,12 +19,15 @@ from torchvision.ops import misc as misc_nn_ops
 from vietocr.tool.predictor import Predictor
 from vietocr.tool.config import Cfg
 
+from sklearn.metrics import pairwise_distances
+
 from source.detect.efficientNet import IntermediateLayerGetter, BackboneWithFPN_B7
 from source.detect.mask_rcnn import detect_text_area
 from utils.visualize import draw_text_bbox
 from utils.helper import crop_text_area, create_output_file
 from configs.config import init_config
 from libs.box_ensemble import *
+from libs.box_ensemble.custom_iou import *
 
 # Vietocr
 CFG = init_config()
@@ -59,10 +62,13 @@ detect_model_resnext50.load_state_dict(torch.load("models/resnext50_fail.pth"))
 
 # detect_model.load_state_dict(torch.load(CFG['mask_rcnn']['model_path'])) 
 
-iou_thr = 0.5
-skip_box_thr = 0.0001
-sigma = 0.1
-weights = [2, 1]
+# iou_thr = 0.5
+# skip_box_thr = 0.0001
+# sigma = 0.1
+# weights = [2, 1]
+
+iou_thr = 0.1
+conf_thr = 0.9
 
 def predict_image(detected_model, image_name, data_dir="data/TestA", result_dir="predicted", visual_dir="data/visual"):
     image_path = os.path.join(data_dir, image_name)
@@ -70,24 +76,32 @@ def predict_image(detected_model, image_name, data_dir="data/TestA", result_dir=
     list_result_text = []
     list_use_boxes = []
     try:
-        list_boxes_resnet, list_scores_resnet = detect_text_area(detect_model_resnext50, image_path, 'cuda')
-        list_boxes_resnet = list(list_boxes_resnet.reshape((-1,8)))
-        list_boxes_b7, list_scores_b7 = detect_text_area(detect_model_b7, image_path, 'cuda')
-        list_boxes_b7 = list(list_boxes_b7.reshape((-1,8)))
-        list_scores_resnet = list(list_scores_resnet)
-        list_scores_b7 = list(list_scores_b7)
-        label_list = []
-        label_list.append([0 for j in range(len(list_boxes_resnet))])
-        label_list.append([0 for j in range(len(list_boxes_b7))])
-        list_boxes, list_scores, _ = weighted_boxes_fusion([list_boxes_resnet, list_boxes_b7], \
-                                                [list_scores_resnet, list_scores_b7], \
-                                                label_list, weights=weights, iou_thr=iou_thr)
-        # print(len(list_boxes))
-        list_boxes = np.array(list_boxes)
-        list_boxes = list_boxes.astype(np.int32)
+        # This snippet is used for wbf codebase      
+        # list_boxes_resnet, list_scores_resnet = detect_text_area(detect_model_resnext50, image_path, 'cuda')
+        # list_boxes_resnet = list(list_boxes_resnet.reshape((-1,8)))
+        # list_boxes_b7, list_scores_b7 = detect_text_area(detect_model_b7, image_path, 'cuda')
+        # list_boxes_b7 = list(list_boxes_b7.reshape((-1,8)))
+        # list_scores_resnet = list(list_scores_resnet)
+        # list_scores_b7 = list(list_scores_b7)
+        # label_list = []
+        # label_list.append([0 for j in range(len(list_boxes_resnet))])
+        # label_list.append([0 for j in range(len(list_boxes_b7))])
+        # list_boxes, list_scores, _ = weighted_boxes_fusion([list_boxes_resnet, list_boxes_b7], \
+        #                                         [list_scores_resnet, list_scores_b7], \
+        #                                         label_list, weights=weights, iou_thr=iou_thr)
 
-        # list_boxes = list_boxes.reshape((4,2))
-        # list_boxes, list_scores = detect_text_area(detected_model, image_path, device)
+        # This snippet is used for new code base 
+        list_boxes_resnet, list_scores_resnet = detect_text_area(detect_model_resnext50, image_path, 'cuda')
+        list_boxes_resnet = list_boxes_resnet.reshape((-1,8))
+        list_boxes_b7, list_scores_b7 = detect_text_area(detect_model_b7, image_path, 'cuda')
+        list_boxes_b7 = list_boxes_b7.reshape((-1,8))
+        aff_mat = pairwise_distances(list_boxes_resnet, list_boxes_b7, metric=quadrangle_intersection_over_union)
+        unmatched_b7_index = np.where(aff_mat.max(axis=0) < iou_thr)
+        trustful_b7_index = np.where(list_scores_b7 > conf_thr)
+        list_boxes = np.concatenate(list_boxes_resnet, list_boxes_b7[np.intersect1d(trustful_b7_index, unmatched_b7_index)], axis = 0)
+
+        # list_boxes = np.array(list_boxes)
+        # list_boxes = list_boxes.astype(np.int32)
         for bbox in list_boxes:
             try:
                 bbox = bbox.reshape((4,2))
