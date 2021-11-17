@@ -75,6 +75,9 @@ def predict_image(detected_model, image_name, data_dir="data/TestA", result_dir=
     image = cv2.imread(image_path)
     list_result_text = []
     list_use_boxes = []
+    final_list_boxes = np.array([])
+    final_list_text = []
+
     try:
         # This snippet is used for wbf codebase      
         # list_boxes_resnet, list_scores_resnet = detect_text_area(detect_model_resnext50, image_path, 'cuda')
@@ -92,42 +95,59 @@ def predict_image(detected_model, image_name, data_dir="data/TestA", result_dir=
 
         # This snippet is used for new code base 
         list_boxes_resnet, list_scores_resnet = detect_text_area(detect_model_resnext50, image_path, 'cuda')
-        list_boxes_resnet = list_boxes_resnet.reshape((-1,8))
+        # list_boxes_resnet = list_boxes_resnet.reshape((-1,8))
         list_boxes_b7, list_scores_b7 = detect_text_area(detect_model_b7, image_path, 'cuda')
-        list_boxes_b7 = list_boxes_b7.reshape((-1,8))
-        aff_mat = pairwise_distances(list_boxes_resnet, list_boxes_b7, metric=quadrangle_intersection_over_union)
-        unmatched_b7_index = np.where(aff_mat.max(axis=0) < iou_thr)
-        trustful_b7_index = np.where(list_scores_b7 > conf_thr)
-        list_boxes = np.concatenate((list_boxes_resnet, list_boxes_b7[np.intersect1d(trustful_b7_index, unmatched_b7_index)]), axis = 0)
+        # list_boxes_b7 = list_boxes_b7.reshape((-1,8))
+        # aff_mat = pairwise_distances(list_boxes_resnet, list_boxes_b7, metric=quadrangle_intersection_over_union)
+        # unmatched_b7_index = np.where(aff_mat.max(axis=0) < iou_thr)
+        # trustful_b7_index = np.where(list_scores_b7 > conf_thr)
+        # list_boxes = np.concatenate((list_boxes_resnet, list_boxes_b7[np.intersect1d(trustful_b7_index, unmatched_b7_index)]), axis = 0)
 
         # list_boxes = np.array(list_boxes)
         # list_boxes = list_boxes.astype(np.int32)
-        for bbox in list_boxes:
-            try:
-                bbox = bbox.reshape((4,2))
-                text_image = crop_text_area(image, bbox)
-                text_image_pil = Image.fromarray(text_image)
-                result_text, prob = recognition_model.predict(text_image_pil, True)
-                # write output file
-                if prob > 0.8: # best 0.6
-                    create_output_file(os.path.join(result_dir, "{}.txt".format(image_name)), bbox, result_text)
-                    list_use_boxes.append(bbox)
-                    list_result_text.append(result_text)
-                    with open("prob_text.txt", "a+") as f:
-                        f.write("{}\t{}\n".format(result_text, prob))
+        for list_boxes in [list_boxes_resnet, list_boxes_b7]:
+            list_result_text_ = []
+            list_use_boxes_ = []
+            for bbox in list_boxes:
+                try:
+                    bbox = bbox.reshape((4,2))
+                    text_image = crop_text_area(image, bbox)
+                    text_image_pil = Image.fromarray(text_image)
+                    result_text, prob = recognition_model.predict(text_image_pil, True)
+                    # write output file
+                    if prob > 0.8: # best 0.6
+                        list_use_boxes_.append(bbox)
+                        list_result_text_.append(result_text)
+                        with open("prob_text.txt", "a+") as f:
+                            f.write("{}\t{}\n".format(result_text, prob))
 
-            except Exception as e:
-                with open("error_maybe_in_bbox.txt", "a+") as f:
-                    f.write("{}\t{}\n".format(e, image_name))
-                continue
+                except Exception as e:
+                    with open("error_maybe_in_bbox.txt", "a+") as f:
+                        f.write("{}\t{}\n".format(e, image_name))
+                    continue
+            list_result_text_ = np.array(list_result_text_)
+            list_use_boxes_ = np.array(list_use_boxes_)
+            list_use_boxes.append(list_use_boxes_)
+            list_result_text.append(list_result_text_)
+        try:
+            aff_mat = pairwise_distances(list_use_boxes[0].reshape(-1,8), list_use_boxes[1].reshape(-1,8), metric=quadrangle_intersection_over_union)
+            unmatched_b7_index = np.where(aff_mat.max(axis=0) < iou_thr)
+            final_list_boxes = np.concatenate((list_use_boxes[0], list_use_boxes[1][unmatched_b7_index]), axis = 0)
+            final_list_text = np.concatenate((list_result_text[0], list_result_text[1][unmatched_b7_index]), axis = 0)
+        except Exception as e:
+            pass 
+        
     except Exception as e:
         with open("error_in_detect_module.txt", "a+") as f:
             f.write("{}\t{}\n".format(e, image_name))
         pass
 
-    image = draw_text_bbox(image, list_use_boxes, list_result_text)
+    image = draw_text_bbox(image, final_list_boxes, final_list_text)
     image_des_path = os.path.join(visual_dir, image_name)
     cv2.imwrite(image_des_path, image)
+
+    for bbox, result_text in zip(final_list_boxes ,final_list_text):
+        create_output_file(os.path.join(result_dir, "{}.txt".format(image_name)), bbox, result_text)
 
 def create_submit(detected_model, image_dir="data/TestA", result_dir="predicted"):
     if not os.path.exists(result_dir):
