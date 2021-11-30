@@ -1,8 +1,9 @@
 pip3 install -r requirements.txt
 # EfficientNet mask-rcnn
-gdown --id 1FQz_CHOmv5WOTJpH8TIZEV-MKy38qH2p
+gdown --id 1S5SCobkYG5geuJZ7H_SzpaZ6FY8ZgRpY
 # VietOCR
-gdown --id 19QwrIEe4FbO3oaxR-21nY5BkbkKRfLO8
+# gdown --id 19QwrIEe4FbO3oaxR-21nY5BkbkKRfLO8
+gdown --id 112dP9jSh6VMw_zpGidjCoXld_2kBlhlp
 # resnext
 gdown --id 1Olv4QZMjkhCRKSUb3lyzFTdUyUwABgTm
 # TestA
