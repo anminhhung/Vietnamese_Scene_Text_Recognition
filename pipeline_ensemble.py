@@ -115,7 +115,7 @@ def predict_image(detected_model, image_name, data_dir="data/TestA", result_dir=
                     text_image_pil = Image.fromarray(text_image)
                     result_text, prob = recognition_model.predict(text_image_pil, True)
                     # write output file
-                    if prob > 0.8: # best 0.6
+                    if prob > 0.9: # best 0.6
                         list_use_boxes_.append(bbox)
                         list_result_text_.append(result_text)
                         with open("prob_text.txt", "a+") as f:
@@ -142,9 +142,9 @@ def predict_image(detected_model, image_name, data_dir="data/TestA", result_dir=
             f.write("{}\t{}\n".format(e, image_name))
         pass
 
-    image = draw_text_bbox(image, final_list_boxes, final_list_text)
-    image_des_path = os.path.join(visual_dir, image_name)
-    cv2.imwrite(image_des_path, image)
+    # image = draw_text_bbox(image, final_list_boxes, final_list_text)
+    # image_des_path = os.path.join(visual_dir, image_name)
+    # cv2.imwrite(image_des_path, image)
 
     for bbox, result_text in zip(final_list_boxes ,final_list_text):
         create_output_file(os.path.join(result_dir, "{}.txt".format(image_name)), bbox, result_text)
