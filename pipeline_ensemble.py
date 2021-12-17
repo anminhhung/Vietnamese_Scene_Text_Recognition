@@ -15,8 +15,8 @@ from efficientnet_pytorch import EfficientNet
 from torchvision.models.detection.mask_rcnn import MaskRCNN
 from torchvision.ops.feature_pyramid_network import LastLevelMaxPool
 from torchvision.ops import misc as misc_nn_ops
-from model_maskRCNN import *
-from model_maskRCNN import (b7_maskRCNN, b4_maskRCNN, resNext50_maskRCNN, resnet101_maskRCNN, vgg19_maskRCNN, mobile_maskRCNN)
+# from model_maskRCNN import *
+# from model_maskRCNN import (b7_maskRCNN, b4_maskRCNN, resNext50_maskRCNN, resnet101_maskRCNN, vgg19_maskRCNN, mobile_maskRCNN)
 
 from vietocr.tool.predictor import Predictor
 from vietocr.tool.config import Cfg
@@ -149,9 +149,9 @@ def predict_image(detected_model, image_name, data_dir="data/TestA", result_dir=
         with open(os.path.join(result_dir, "{}.txt".format(image_name)),'w') as f:
             f.write('\n'.join(result))
 
-        image = draw_text_bbox(image, bboxes, texts)
-        image_des_path = os.path.join(visual_dir, image_name)
-        cv2.imwrite(image_des_path, image)
+        # image = draw_text_bbox(image, bboxes, texts)
+        # image_des_path = os.path.join(visual_dir, image_name)
+        # cv2.imwrite(image_des_path, image)
 
     except Exception as e:
         pass
