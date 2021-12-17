@@ -22,9 +22,10 @@ from torchvision.ops import misc as misc_nn_ops
 
 def detect_text_area(model, image_path, device):
     model.eval()
+    model.half()
 
     img = Image.open(image_path).convert("RGB")
-    img_tensor = F.to_tensor(img)
+    img_tensor = F.to_tensor(img).half()
 
     # put the model in evaluation mode
     with torch.no_grad():
