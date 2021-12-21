@@ -1,5 +1,6 @@
 import numpy as np 
 import cv2
+import itertools 
 import os 
 
 from PIL import Image, ImageDraw, ImageFont
@@ -104,104 +105,35 @@ def postprocess(result):
 def predict_image(detected_model, image_name, data_dir="data/TestA", result_dir="predicted", visual_dir="data/visual"):
     image_path = os.path.join(data_dir, image_name)
     image = cv2.imread(image_path)
-    list_result_text = []
-    list_use_boxes = []
-    final_list_boxes = np.array([])
-    final_list_text = []
+    # print(image_path)
+    # print(detect_text_area(detect_model, image_path, 'cuda'))
 
     try:
-        # This snippet is used for wbf codebase      
-        # list_boxes_resnet, list_scores_resnet = detect_text_area(detect_model_resnext50, image_path, 'cuda')
-        # list_boxes_resnet = list(list_boxes_resnet.reshape((-1,8)))
-        # list_boxes_b7, list_scores_b7 = detect_text_area(detect_model_b7, image_path, 'cuda')
-        # list_boxes_b7 = list(list_boxes_b7.reshape((-1,8)))
-        # list_scores_resnet = list(list_scores_resnet)
-        # list_scores_b7 = list(list_scores_b7)
-        # label_list = []
-        # label_list.append([0 for j in range(len(list_boxes_resnet))])
-        # label_list.append([0 for j in range(len(list_boxes_b7))])
-        # list_boxes, list_scores, _ = weighted_boxes_fusion([list_boxes_resnet, list_boxes_b7], \
-        #                                         [list_scores_resnet, list_scores_b7], \
-        #                                         label_list, weights=weights, iou_thr=iou_thr)
-
-        # This snippet is used for new code base 
         result = []
-        bboxes = []
-        texts = []
-        final_list_boxes, _ = detect_text_area(detect_model, image_path, 'cuda')
-        for bbox in final_list_boxes:
+        concatenated_detections = []
+        list_boxes, _ = detect_text_area(detect_model, image_path, 'cuda')
+        for bbox in list_boxes:
             try:
                 bbox = bbox.reshape((4,2))
                 text_image = crop_text_area(image, bbox)
                 text_image_pil = Image.fromarray(text_image)
                 result_text, prob = recognition_model.predict(text_image_pil, True)
                 # write output file
-                if prob > 0.9: # best 0.6
-                    bboxes.append(bbox)
-                    texts.append(result_text)
-                    res = postprocess(bbox + [result_text])
-                    result.append("{},{},{},{},{},{},{},{},{}".format(
-                res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], res[8]))
+                if prob > 0.9: 
+                    concatenated_detections.append(list(itertools.chain(*bbox.tolist())) + [result_text])
             except Exception as e:
-                with open("error_maybe_in_bbox.txt", "a+") as f:
-                    f.write("{}\t{}\n".format(e, image_name))
                 continue
+
+        concatenated_detections = postprocess(concatenated_detections)
+        for res in concatenated_detections:
+            result.append("{},{},{},{},{},{},{},{},{}".format(\
+                        res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], res[8]))
+
         with open(os.path.join(result_dir, "{}.txt".format(image_name)),'w') as f:
             f.write('\n'.join(result))
 
-        # image = draw_text_bbox(image, bboxes, texts)
-        # image_des_path = os.path.join(visual_dir, image_name)
-        # cv2.imwrite(image_des_path, image)
-
     except Exception as e:
         pass
-
-        # This snippet is used for ensemble b7 and resnet50
-    #     list_boxes_resnet, list_scores_resnet = detect_text_area(detect_model_resnext50, image_path, 'cuda')
-    #     list_boxes_b7, list_scores_b7 = detect_text_area(detect_model_b7, image_path, 'cuda')
-    #     for list_boxes in [list_boxes_resnet, list_boxes_b7]:
-    #         list_result_text_ = []
-    #         list_use_boxes_ = []
-            # for bbox in list_boxes:
-            #     try:
-            #         bbox = bbox.reshape((4,2))
-            #         text_image = crop_text_area(image, bbox)
-            #         text_image_pil = Image.fromarray(text_image)
-            #         result_text, prob = recognition_model.predict(text_image_pil, True)
-            #         # write output file
-            #         if prob > 0.9: # best 0.6
-            #             list_use_boxes_.append(bbox)
-            #             list_result_text_.append(result_text)
-            #             with open("prob_text.txt", "a+") as f:
-            #                 f.write("{}\t{}\n".format(result_text, prob))
-
-            #     except Exception as e:
-            #         with open("error_maybe_in_bbox.txt", "a+") as f:
-            #             f.write("{}\t{}\n".format(e, image_name))
-            #         continue
-            # list_result_text_ = np.array(list_result_text_)
-            # list_use_boxes_ = np.array(list_use_boxes_)
-            # list_use_boxes.append(list_use_boxes_)
-            # list_result_text.append(list_result_text_)
-    #     try:
-    #         aff_mat = pairwise_distances(list_use_boxes[0].reshape(-1,8), list_use_boxes[1].reshape(-1,8), metric=quadrangle_intersection_over_union)
-    #         unmatched_b7_index = np.where(aff_mat.max(axis=0) < iou_thr)
-    #         final_list_boxes = np.concatenate((list_use_boxes[0], list_use_boxes[1][unmatched_b7_index]), axis = 0)
-    #         final_list_text = np.concatenate((list_result_text[0], list_result_text[1][unmatched_b7_index]), axis = 0)
-    #     except Exception as e:
-    #         pass 
-        
-    # except Exception as e:
-    #     with open("error_in_detect_module.txt", "a+") as f:
-    #         f.write("{}\t{}\n".format(e, image_name))
-    #     pass
-
-    # image = draw_text_bbox(image, final_list_boxes, final_list_text)
-    # image_des_path = os.path.join(visual_dir, image_name)
-    # cv2.imwrite(image_des_path, image)
-
-    # for bbox, result_text in zip(final_list_boxes ,final_list_text):
-    #     create_output_file(os.path.join(result_dir, "{}.txt".format(image_name)), bbox, result_text)
 
 def create_submit(detected_model, image_dir="data/TestA", result_dir="predicted"):
     if not os.path.exists(result_dir):
@@ -211,8 +143,8 @@ def create_submit(detected_model, image_dir="data/TestA", result_dir="predicted"
         os.mkdir("data/visual")
 
     for image_name in os.listdir(image_dir):
-        print("predict ", image_name)
-        predict_image(detected_model, image_name)
+        # print("predict ", image_name)
+        predict_image(detected_model, image_name, data_dir=image_dir, result_dir=result_dir)
 
     print("[INFO] Done")
 
